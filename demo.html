@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>乌萨奇 Lottie 演示</title>
+<style>
+  body{margin:0;height:100vh;display:flex;align-items:center;justify-content:center;background:#dff3ff;font-family:Arial,Helvetica,sans-serif}
+  .wrap{width:360px;height:640px;background:#fff;border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,0.08);display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;overflow:hidden}
+  #anim{width:260px;height:260px}
+  .bubble{position:absolute;top:32px;left:50%;transform:translateX(-50%);background:#fff;padding:10px 14px;border-radius:16px;box-shadow:0 6px 12px rgba(0,0,0,0.08);font-size:15px;display:none}
+  .hint{position:absolute;bottom:18px;font-size:13px;color:#0b5f7a}
+  button{margin:6px;padding:8px 12px;border-radius:10px;border:0;background:#0b8bb8;color:#fff;cursor:pointer}
+  .controls{position:absolute;right:12px;top:12px;display:flex;flex-direction:column;gap:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="anim"></div>
+  <div class="bubble" id="bubble">呜啦呀哈～</div>
+  <div class="hint">点击切换动画 · 长按呼呼睡</div>
+  <div class="controls">
+    <button data-act="jump">跳跃</button>
+    <button data-act="wave">挥手</button>
+    <button data-act="spin">转圈</button>
+    <button data-act="sleep">打瞌睡</button>
+  </div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bodymovin/5.9.6/lottie.min.js"></script>
+<script>
+  const animContainer = document.getElementById('anim');
+  const bubble = document.getElementById('bubble');
+  const acts = {
+    jump: 'usagi_jump.json',
+    wave: 'usagi_wave.json',
+    spin: 'usagi_spin.json',
+    sleep: 'usagi_sleep.json'
+  };
+  let current = null;
+  let player = null;
+  let idleTimer = null;
+  const PHRASES = ['呜啦呀哈～','呀哈呜啦！','呜啦呀哈～要玩嘛？','呀哈呜啦～给你比个心~'];
+  function showBubble(t, ms=1600){ bubble.innerText = t; bubble.style.display='block'; clearTimeout(bubble._t); bubble._t=setTimeout(()=>bubble.style.display='none', ms); }
+  function loadOne(act){
+    if(player) { player.destroy(); player = null; }
+    player = lottie.loadAnimation({container: animContainer, renderer:'svg', loop:false, autoplay:true, path: acts[act]});
+    current = act;
+    showBubble(PHRASES[Math.floor(Math.random()*PHRASES.length)], 1400);
+    // after play, schedule idle
+    player.addEventListener('complete', ()=> scheduleIdle());
+  }
+  // idle randomized
+  function scheduleIdle(){
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(()=>{ const a = ['jump','wave','spin'][Math.floor(Math.random()*3)]; loadOne(a); }, 2500 + Math.random()*3000);
+  }
+  // initial
+  loadOne('jump');
+  scheduleIdle();
+  // controls
+  document.querySelectorAll('button').forEach(b=> b.addEventListener('click', ()=> loadOne(b.dataset.act)));
+  // click container toggles random action
+  animContainer.addEventListener('click', ()=>{ if(current==='sleep'){ loadOne('wave'); return; } const a = ['jump','wave','spin'][Math.floor(Math.random()*3)]; loadOne(a); });
+  // long press to sleep
+  let pressTimer = null;
+  animContainer.addEventListener('touchstart', ()=>{ pressTimer = setTimeout(()=>{ loadOne('sleep'); }, 700); });
+  animContainer.addEventListener('mousedown', ()=>{ pressTimer = setTimeout(()=>{ loadOne('sleep'); }, 700); });
+  function cancelPress(){ if(pressTimer){ clearTimeout(pressTimer); pressTimer=null;} }
+  animContainer.addEventListener('touchend', cancelPress); animContainer.addEventListener('mouseup', cancelPress);
+  // pause when page hidden
+  document.addEventListener('visibilitychange', ()=>{ if(document.hidden && player) player.pause(); if(!document.hidden && player) player.play(); });
+</script>
+</body>
+</html>
